@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+
+@layer base {
+  :root {
+    --bg-main: #f8fafc;        /* Soft slate white */
+    --bg-surface: #ffffff;     /* Clean pure white for cards and modules */
+    --border-subtle: #e2e8f0;  /* Crisp light gray divider lines */
+    --text-primary: #0f172a;   /* Deep slate for clear typography */
+    --text-secondary: #475569; /* Balanced charcoal for body text */
+    
+    --brand-primary: #2563eb;   /* Refined corporate royal blue */
+    --brand-success: #16a34a;   /* Clean leaf green for positive signals */
+    --brand-warning: #ea580c;   /* Balanced amber for potential risk items */
+    --brand-danger: #dc2626;    /* Soft crimson for alert items */
+  }
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
