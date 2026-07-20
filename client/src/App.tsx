@@ -107,13 +107,13 @@ export default function App() {
     }
   };
 
-  const handleLaunchProduct = async (title: string, desc: string, status: 'Launched' | 'Upcoming') => {
+  const handleLaunchProduct = async (title: string, desc: string, status: 'Launched' | 'Upcoming', catalogImage: string) => {
     setLoading(true);
     setError(null);
     try {
       await axios.post(
         `${BACKEND_URL}/api/products`, 
-        { title, description: desc, launchStatus: status, catalogImage: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80' },
+        { title, description: desc, launchStatus: status, catalogImage },
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
       setSuccessMessage("Product asset registered successfully.");

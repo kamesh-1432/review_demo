@@ -22,8 +22,8 @@ app.use(cors({
 }));
 
 // 2. BODY PARSING MIDDLEWARE
-app.use(express.json());
 
+app.use(express.json({ limit: '8mb' }));
 // 3. OPTIONAL INTERNAL REQUEST LOGGER (Extremely useful for debugging frontend hits)
 app.use((req, res, next) => {
   console.log(`📡 Inbound Request: ${req.method} -> ${req.originalUrl}`);

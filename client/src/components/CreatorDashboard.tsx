@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Rocket, BarChart3, Package, Sparkle } from 'lucide-react';
+import { Rocket, BarChart3, Package, Sparkle, ImagePlus, X } from 'lucide-react';
 import type { Product, CurrentPage } from '../types';
 
 interface CreatorDashboardProps {
   products: Product[];
   onNavigate: (page: CurrentPage) => void;
   onSelectProduct: (product: Product) => void;
-  onLaunchProduct: (title: string, desc: string, status: 'Launched' | 'Upcoming') => void;
+  onLaunchProduct: (title: string, desc: string, status: 'Launched' | 'Upcoming', catalogImage: string) => void;
 }
+
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4MB raw file cap, keeps base64 payload safely under the 8mb server limit
 
 export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
   products,
@@ -19,15 +21,43 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
   const [status, setStatus] = useState<'Launched' | 'Upcoming'>('Launched');
+  const [imageData, setImageData] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const productList = Array.isArray(products) ? products : [];
+
+  const handleFileSelect = (file: File | undefined) => {
+    setImageError(null);
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setImageError('Please choose an image file.');
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setImageError('Image is too large — please choose one under 4MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => setImageData(reader.result as string);
+    reader.onerror = () => setImageError('Could not read that file, please try another.');
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !desc.trim()) return;
-    onLaunchProduct(title, desc, status);
+    if (!imageData) {
+      setImageError('Add a catalog image before listing the product.');
+      return;
+    }
+    onLaunchProduct(title, desc, status, imageData);
     setTitle('');
     setDesc('');
+    setImageData(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
@@ -38,7 +68,6 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-        {/* Launch form — big, clear, one job per field */}
         <div className="lg:col-span-2 bg-surface border border-line rounded-2xl p-7 md:p-8 shadow-sm h-fit space-y-6">
           <div className="flex items-center gap-2.5">
             <div className="bg-ledger-soft text-ledger w-9 h-9 rounded-xl flex items-center justify-center">
@@ -48,6 +77,45 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-ink">Catalog image</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleFileSelect(e.target.files?.[0])}
+                className="hidden"
+                id="catalog-image-input"
+              />
+
+              {imageData ? (
+                <div className="relative rounded-xl overflow-hidden border border-line group">
+                  <img src={imageData} alt="Selected catalog preview" className="w-full aspect-video object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageData(null);
+                      if (fileInputRef.current) fileInputRef.current.value = '';
+                    }}
+                    className="absolute top-2 right-2 bg-ink/70 hover:bg-ink text-white rounded-full p-1.5 cursor-pointer transition-colors"
+                    aria-label="Remove selected image"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <label
+                  htmlFor="catalog-image-input"
+                  className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-line rounded-xl aspect-video cursor-pointer bg-surface-sunken hover:border-ledger hover:bg-ledger-soft/40 transition-colors"
+                >
+                  <ImagePlus className="w-6 h-6 text-ink-faint" />
+                  <span className="text-sm text-ink-soft font-medium">Click to choose an image</span>
+                  <span className="text-xs text-ink-faint">PNG or JPG, up to 4MB</span>
+                </label>
+              )}
+              {imageError && <p className="text-xs text-flag font-medium">{imageError}</p>}
+            </div>
+
             <div className="space-y-2">
               <label className="text-sm font-medium text-ink">Product name</label>
               <input
@@ -113,7 +181,6 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
           </form>
         </div>
 
-        {/* Catalog — big cards */}
         <div className="lg:col-span-3 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-display font-semibold text-lg text-ink">Your products</h3>
