@@ -1,19 +1,27 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { ArrowLeft, Sparkles, ThumbsUp, ThumbsDown, Send, Star } from 'lucide-react';
 import type { Product, CurrentPage } from '../types';
 
 interface ReviewFormProps {
   selectedProduct: Product;
   onNavigate: (page: CurrentPage) => void;
-  // Updated signature to support sending the chosen numerical rating along with text parameters
   onSubmit: (text: string, likes: string, dislikes: string, rating: number) => void;
 }
+
+const ratingCopy: Record<number, string> = {
+  1: 'Poor',
+  2: 'Below average',
+  3: 'Average',
+  4: 'Good',
+  5: 'Excellent',
+};
 
 export const ReviewForm: React.FC<ReviewFormProps> = ({ selectedProduct, onNavigate, onSubmit }) => {
   const [text, setText] = useState('');
   const [likes, setLikes] = useState('');
   const [dislikes, setDislikes] = useState('');
-  const [rating, setRating] = useState<number>(5); // Defaults to 5, adjustable interactively
+  const [rating, setRating] = useState<number>(5);
   const [hoveredRating, setHoveredRating] = useState<number | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -21,33 +29,37 @@ export const ReviewForm: React.FC<ReviewFormProps> = ({ selectedProduct, onNavig
     onSubmit(text, likes, dislikes, rating);
   };
 
+  const displayedRating = hoveredRating ?? rating;
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <button 
-        onClick={() => onNavigate('reviewer-dashboard')} 
-        className="inline-flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900 cursor-pointer border-none bg-transparent"
+      <button
+        onClick={() => onNavigate('reviewer-dashboard')}
+        className="inline-flex items-center gap-1.5 text-sm text-ink-soft hover:text-ink cursor-pointer border-none bg-transparent"
       >
-        <ArrowLeft className="w-3.5 h-3.5" /> Return to Evaluation Matrix
+        <ArrowLeft className="w-4 h-4" /> Back to feed
       </button>
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm space-y-6">
-        <div className="flex gap-4 items-center border-b border-slate-100 pb-4">
-          <img src={selectedProduct.catalogImage} className="w-16 h-16 rounded-xl object-cover border border-slate-200" alt="" />
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="bg-surface border border-line rounded-2xl p-6 md:p-9 shadow-sm space-y-7"
+      >
+        <div className="flex gap-4 items-center border-b border-line pb-6">
+          <img src={selectedProduct.catalogImage} className="w-16 h-16 rounded-xl object-cover border border-line" alt="" />
           <div>
-            <h2 className="text-lg font-bold text-slate-900">{selectedProduct.title}</h2>
-            <p className="text-xs text-slate-500">Logging persistent structural NLP assessment arrays.</p>
+            <h2 className="font-display text-xl font-semibold text-ink">{selectedProduct.title}</h2>
+            <p className="text-sm text-ink-soft mt-0.5">Your feedback becomes part of this product's signal.</p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Interactive Numeric Star Selector Section */}
-          <div className="space-y-2">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
-              Select Rating Multiplier
-            </label>
-            <div className="flex items-center gap-1.5">
+        <form onSubmit={handleSubmit} className="space-y-7">
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-ink">Overall rating</label>
+            <div className="flex items-center gap-2">
               {[1, 2, 3, 4, 5].map((starValue) => {
-                const isLit = hoveredRating !== null ? starValue <= hoveredRating : starValue <= rating;
+                const isLit = starValue <= displayedRating;
                 return (
                   <button
                     key={starValue}
@@ -55,70 +67,74 @@ export const ReviewForm: React.FC<ReviewFormProps> = ({ selectedProduct, onNavig
                     onClick={() => setRating(starValue)}
                     onMouseEnter={() => setHoveredRating(starValue)}
                     onMouseLeave={() => setHoveredRating(null)}
-                    className="p-1 -m-1 transition-transform active:scale-95 cursor-pointer border-none bg-transparent"
+                    className="p-1 -m-1 cursor-pointer border-none bg-transparent"
                   >
-                    <Star
-                      className={`w-6 h-6 transition-colors duration-150 ${
-                        isLit 
-                          ? 'text-amber-400 fill-amber-400' 
-                          : 'text-slate-200 fill-transparent'
-                      }`}
-                    />
+                    <motion.div whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}>
+                      <Star
+                        className={`w-8 h-8 transition-colors duration-150 ${
+                          isLit ? 'text-pending fill-pending' : 'text-line fill-transparent'
+                        }`}
+                      />
+                    </motion.div>
                   </button>
                 );
               })}
-              <span className="text-xs font-semibold text-slate-400 ml-2">
-                ({rating} Star{rating !== 1 ? 's' : ''})
+              <span className="text-sm font-semibold text-ink-soft ml-2">
+                {ratingCopy[displayedRating]}
               </span>
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-blue-500" /> Core Review Analysis Text
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-ink flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-ledger" /> Your review
             </label>
-            <textarea 
-              required 
-              rows={4} 
-              value={text} 
-              onChange={(e) => setText(e.target.value)} 
-              placeholder="Detail your findings here. Our AI infrastructure will parse this string for weighted scores..." 
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-900 focus:outline-none focus:border-blue-500 resize-none" 
+            <textarea
+              required
+              rows={5}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="What stood out? Be specific — this text is what turns into the product's sentiment and aspect scores."
+              className="w-full bg-surface-sunken border border-line rounded-xl p-4 text-[15px] text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-ledger/30 focus:border-ledger transition-shadow resize-none leading-relaxed"
             />
+            <p className="text-xs text-ink-faint">{text.length} characters</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
-                <ThumbsUp className="w-3 h-3 text-emerald-600" /> Explicit Likes
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-ink flex items-center gap-1.5">
+                <ThumbsUp className="w-3.5 h-3.5 text-verified" /> What you liked
               </label>
-              <input 
-                type="text" 
-                value={likes} 
-                onChange={(e) => setLikes(e.target.value)} 
-                placeholder="e.g. Speed, texture" 
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-blue-500" 
+              <input
+                type="text"
+                value={likes}
+                onChange={(e) => setLikes(e.target.value)}
+                placeholder="e.g. build quality, speed"
+                className="w-full bg-surface-sunken border border-line rounded-xl px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-ledger/30 focus:border-ledger transition-shadow"
               />
             </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
-                <ThumbsDown className="w-3 h-3 text-amber-600" /> Friction Vectors
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-ink flex items-center gap-1.5">
+                <ThumbsDown className="w-3.5 h-3.5 text-flag" /> What could improve
               </label>
-              <input 
-                type="text" 
-                value={dislikes} 
-                onChange={(e) => setDislikes(e.target.value)} 
-                placeholder="e.g. Cables, heat" 
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-blue-500" 
+              <input
+                type="text"
+                value={dislikes}
+                onChange={(e) => setDislikes(e.target.value)}
+                placeholder="e.g. battery life, price"
+                className="w-full bg-surface-sunken border border-line rounded-xl px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-ledger/30 focus:border-ledger transition-shadow"
               />
             </div>
           </div>
 
-          <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-colors">
-            <Send className="w-3.5 h-3.5" /> Transmit Evaluation to Database
+          <button
+            type="submit"
+            className="w-full bg-signal hover:bg-signal-hover text-white text-sm font-semibold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-sm"
+          >
+            <Send className="w-4 h-4" /> Submit review
           </button>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 };

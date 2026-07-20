@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 // Import Types
 import type { Product, UserRole, CurrentPage } from './types';
@@ -163,28 +163,30 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-[#0f172a] flex flex-col antialiased">
+    <div className="min-h-screen bg-canvas text-ink flex flex-col antialiased">
       <Header currentPage={currentPage} onNavigate={setCurrentPage} onLogout={handleLogout} />
       
       <main className="flex-1 w-full max-w-7xl mx-auto p-6 md:p-8">
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-800 p-4 rounded-xl text-xs font-medium flex items-center gap-2.5 shadow-sm">
-            <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+          <div className="mb-6 bg-flag-soft border border-flag/20 text-flag p-4 rounded-xl text-xs font-medium flex items-center gap-2.5 shadow-sm max-w-2xl mx-auto">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{error}</span>
           </div>
         )}
         {successMessage && (
-          <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl text-xs font-medium flex items-center gap-2.5 shadow-sm">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <div className="mb-6 bg-verified-soft border border-verified/20 text-verified p-4 rounded-xl text-xs font-medium flex items-center gap-2.5 shadow-sm max-w-2xl mx-auto">
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
             <span>{successMessage}</span>
           </div>
         )}
 
         {loading && (
-          <div className="fixed inset-0 bg-white/60 backdrop-blur-xs z-50 flex items-center justify-center">
-            <div className="bg-white p-5 rounded-2xl shadow-xl border border-slate-100 flex flex-col items-center gap-3">
-              <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-              <p className="text-xs font-medium text-slate-600">Processing live transaction packet...</p>
+          <div className="fixed inset-0 bg-ink/20 backdrop-blur-xs z-50 flex items-center justify-center">
+            <div className="bg-surface p-5 rounded-2xl shadow-xl border border-line flex flex-col items-center gap-3">
+              <span className="signal-pulse text-ledger" style={{ height: '22px' }}>
+                <span></span><span></span><span></span>
+              </span>
+              <p className="text-xs font-medium text-ink-soft">Processing live transaction packet...</p>
             </div>
           </div>
         )}

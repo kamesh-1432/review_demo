@@ -148,18 +148,27 @@ router.get('/', async (req, res) => {
 router.post('/', protect, authorize('business'), async (req, res) => {
   try {
     const { title, description, launchStatus, catalogImage, price, category } = req.body;
-    const product = await Product.create({
+
+    // Create the product using values from req.body and the authenticated user
+    const newProduct = await Product.create({
       name: title, 
       description,
       launchStatus: launchStatus || 'Launched',
       poster: catalogImage || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30', 
       price: price || 0, 
       category: category || 'General', 
-      businessId: req.user._id 
+      businessId: req.user._id // Correctly associate the product with the authenticated business owner
     });
-    res.status(201).json(product);
+
+    res.status(201).json(newProduct);
   } catch (error) {
-    res.status(500).json({ message: "Failed to register product asset.", error: error.message });
+    // Detailed logging to help identify schema validation issues
+    console.error("❌ MONGODB REGISTRATION ERROR:", error);
+    
+    res.status(500).json({ 
+      message: "Failed to register product asset.", 
+      error: error.message 
+    });
   }
 });
 

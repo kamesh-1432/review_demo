@@ -10,6 +10,7 @@ const productSchema = new mongoose.Schema({
   poster: { type: String, required: true },
   price: { type: Number, required: true },
   status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+   launchStatus: { type: String, enum: ['Launched', 'Upcoming'], default: 'Launched' },
   createdAt: { type: Date, default: Date.now }
 });
 

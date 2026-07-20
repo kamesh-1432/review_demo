@@ -1,5 +1,6 @@
-import React from 'react';
-import { MessageSquare } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import { MessageSquare, CheckCircle2, Clock3 } from 'lucide-react';
 import type { Product, CurrentPage } from '../types';
 
 interface ReviewerDashboardProps {
@@ -8,51 +9,153 @@ interface ReviewerDashboardProps {
   onNavigate: (page: CurrentPage) => void;
 }
 
-export const ReviewerDashboard: React.FC<ReviewerDashboardProps> = ({ 
-  products, 
-  onSelectProduct, 
-  onNavigate 
+type FeedFilter = 'ALL' | 'Launched' | 'Upcoming';
+
+// Derives a short, stable label from a creator id so each card reads like
+// a post from a real account, without requesting any new backend field.
+const creatorInitials = (creatorId?: string) => {
+  if (!creatorId) return 'CR';
+  const cleaned = String(creatorId).replace(/[^a-zA-Z0-9]/g, '');
+  return (cleaned.slice(0, 2) || 'CR').toUpperCase();
+};
+
+export const ReviewerDashboard: React.FC<ReviewerDashboardProps> = ({
+  products,
+  onSelectProduct,
+  onNavigate
 }) => {
+  const [filter, setFilter] = useState<FeedFilter>('ALL');
+
   // Defensive guard against non-array payloads
   const productList = Array.isArray(products) ? products : [];
 
+  const filtered = useMemo(() => {
+    if (filter === 'ALL') return productList;
+    return productList.filter((p) => p.launchStatus === filter);
+  }, [productList, filter]);
+
+  const filters: { key: FeedFilter; label: string }[] = [
+    { key: 'ALL', label: 'All' },
+    { key: 'Launched', label: 'Launched' },
+    { key: 'Upcoming', label: 'Upcoming' },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="border-b border-slate-200 pb-5 space-y-1">
-        <h2 className="text-xl font-bold text-slate-900">Active Procurement Evaluation Catalog</h2>
-        <p className="text-xs text-slate-500">Select any active or pending release item to execute deep metric analysis reviews.</p>
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div className="space-y-4">
+        <div>
+          <h2 className="font-display text-2xl font-semibold text-ink">Review feed</h2>
+          <p className="text-sm text-ink-soft mt-1">Pick a product to evaluate and send your signal.</p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {filters.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              className={`text-xs font-semibold px-3.5 py-1.5 rounded-full border transition-colors cursor-pointer ${
+                filter === f.key
+                  ? 'bg-ledger text-white border-ledger'
+                  : 'bg-surface text-ink-soft border-line hover:border-ink-faint'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {productList.map((product) => (
-          <div key={product.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between">
-            <div>
-              <div className="h-44 relative bg-slate-100">
-                <img src={product.catalogImage} alt={product.title} className="w-full h-full object-cover" />
-                <span className={`absolute top-3 right-3 text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                  product.launchStatus === 'Launched' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                }`}>
+      {filtered.length === 0 && (
+        <div className="bg-surface border border-line rounded-2xl p-10 text-center">
+          <p className="text-sm text-ink-soft">No products in this view yet. Check back soon.</p>
+        </div>
+      )}
+
+      <div className="space-y-6">
+        {filtered.map((product, i) => {
+          const analytics = product.analytics;
+          const hasReviews = !!analytics && analytics.totalReviews > 0;
+          const isLaunched = product.launchStatus === 'Launched';
+
+          return (
+            <motion.article
+              key={product.id}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: Math.min(i, 6) * 0.05 }}
+              whileHover={{ y: -3 }}
+              className="bg-surface border border-line rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+            >
+              {/* Post header — brand identity row, like an account line on a feed post */}
+              <div className="flex items-center justify-between px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-ledger-soft text-ledger font-display font-semibold text-xs flex items-center justify-center">
+                    {creatorInitials(product.creatorId)}
+                  </div>
+                  <div className="leading-tight">
+                    <p className="text-sm font-semibold text-ink">{product.title}</p>
+                    <p className="text-[11px] text-ink-faint">
+                      {product.category || 'Product listing'}
+                    </p>
+                  </div>
+                </div>
+
+                <span
+                  className={`flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+                    isLaunched
+                      ? 'bg-verified-soft text-verified'
+                      : 'bg-pending-soft text-pending'
+                  }`}
+                >
+                  {isLaunched ? <CheckCircle2 className="w-3 h-3" /> : <Clock3 className="w-3 h-3" />}
                   {product.launchStatus}
                 </span>
               </div>
-              <div className="p-5 space-y-2">
-                <h3 className="font-bold text-base text-slate-900 line-clamp-1">{product.title}</h3>
-                <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">{product.description}</p>
+
+              {/* Big feed-style image */}
+              <div className="w-full aspect-[4/3] bg-surface-sunken">
+                <img
+                  src={product.catalogImage}
+                  alt={product.title}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
               </div>
-            </div>
-            <div className="p-5 pt-0">
-              <button 
-                onClick={() => {
-                  onSelectProduct(product);
-                  onNavigate('review-form');
-                }} 
-                className="w-full bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 text-xs font-semibold py-2 rounded-xl transition-colors flex items-center justify-center gap-1 cursor-pointer"
-              >
-                <MessageSquare className="w-3.5 h-3.5 text-blue-600" /> Review the Product
-              </button>
-            </div>
-          </div>
-        ))}
+
+              {/* Caption block */}
+              <div className="px-5 pt-4 pb-2 space-y-1.5">
+                <p className="text-sm text-ink leading-relaxed">{product.description}</p>
+              </div>
+
+              {/* Stats row — styled like a data ledger line, mono numerals */}
+              <div className="flex items-center justify-between px-5 py-3 border-t border-line mt-2">
+                <div className="flex items-center gap-4 font-data text-xs text-ink-soft">
+                  <span>
+                    <span className="text-ink font-medium">{hasReviews ? analytics!.totalReviews : 0}</span> reviews
+                  </span>
+                  {hasReviews && (
+                    <span className="flex items-center gap-1.5">
+                      <span className="signal-pulse text-signal">
+                        <span></span><span></span><span></span>
+                      </span>
+                      <span className="text-ink font-medium">{analytics!.sentimentScore.toFixed(0)}%</span> signal
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => {
+                    onSelectProduct(product);
+                    onNavigate('review-form');
+                  }}
+                  className="bg-signal hover:bg-signal-hover text-white text-xs font-semibold py-2 px-4 rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" /> Review this product
+                </button>
+              </div>
+            </motion.article>
+          );
+        })}
       </div>
     </div>
   );

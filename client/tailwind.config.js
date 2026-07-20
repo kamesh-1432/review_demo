@@ -4,23 +4,10 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}", // Make sure ts and tsx are included here!
   ],
+  // Design tokens (colors, fonts) now live in src/index.css via the
+  // Tailwind v4 @theme directive — see the "Signal" identity block there.
   theme: {
-    extend: {
-      colors: {
-        brand: {
-          dark: '#0B0F19',
-          surface: '#161F30',
-          border: '#243249',
-          accent: '#3B82F6',
-          success: '#10B981',
-          warning: '#F59E0B',
-          danger: '#EF4444',
-        }
-      },
-      fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-      },
-    },
+    extend: {},
   },
   plugins: [],
 }

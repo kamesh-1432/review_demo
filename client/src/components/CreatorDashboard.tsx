@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { PlusCircle, BarChart3 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Rocket, BarChart3, Package, Sparkle } from 'lucide-react';
 import type { Product, CurrentPage } from '../types';
 
 interface CreatorDashboardProps {
@@ -9,17 +10,16 @@ interface CreatorDashboardProps {
   onLaunchProduct: (title: string, desc: string, status: 'Launched' | 'Upcoming') => void;
 }
 
-export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ 
-  products, 
-  onNavigate, 
-  onSelectProduct, 
-  onLaunchProduct 
+export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
+  products,
+  onNavigate,
+  onSelectProduct,
+  onLaunchProduct
 }) => {
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
   const [status, setStatus] = useState<'Launched' | 'Upcoming'>('Launched');
 
-  // Defensive array fallback checking
   const productList = Array.isArray(products) ? products : [];
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -31,66 +31,155 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
   };
 
   return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Launch Panel */}
-        <div className="lg:col-span-1 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm h-fit space-y-4">
-          <h3 className="font-bold text-base text-slate-900 flex items-center gap-1.5">
-            <PlusCircle className="w-4 h-4 text-blue-600" /> Provision New Asset
-          </h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Asset Title Name</label>
-              <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. HyperDrive Array v4" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-blue-500" />
+    <div className="space-y-10 max-w-6xl mx-auto">
+      <div>
+        <h2 className="font-display text-2xl font-semibold text-ink">Creator console</h2>
+        <p className="text-sm text-ink-soft mt-1">List a product and track its signal as reviews come in.</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+        {/* Launch form — big, clear, one job per field */}
+        <div className="lg:col-span-2 bg-surface border border-line rounded-2xl p-7 md:p-8 shadow-sm h-fit space-y-6">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-ledger-soft text-ledger w-9 h-9 rounded-xl flex items-center justify-center">
+              <Rocket className="w-4.5 h-4.5" />
             </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Specifications Overview</label>
-              <textarea required rows={3} value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Provide design details..." className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-900 focus:outline-none focus:border-blue-500 resize-none" />
+            <h3 className="font-display font-semibold text-lg text-ink">List a new product</h3>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-ink">Product name</label>
+              <input
+                type="text"
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. HyperDrive Array v4"
+                className="w-full bg-surface-sunken border border-line rounded-xl px-4 py-3.5 text-[15px] text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-ledger/30 focus:border-ledger transition-shadow"
+              />
             </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Registry Mode</label>
-              <select value={status} onChange={(e) => setStatus(e.target.value as any)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-blue-500">
-                <option value="Launched">Launched (Evaluations Open)</option>
-                <option value="Upcoming">Upcoming (Beta Sandbox Pool)</option>
-              </select>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-ink">Description</label>
+              <textarea
+                required
+                rows={5}
+                value={desc}
+                onChange={(e) => setDesc(e.target.value)}
+                placeholder="What is it, who's it for, and what should reviewers pay attention to?"
+                className="w-full bg-surface-sunken border border-line rounded-xl p-4 text-[15px] text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-ledger/30 focus:border-ledger transition-shadow resize-none leading-relaxed"
+              />
+              <p className="text-xs text-ink-faint">{desc.length} characters — a few clear sentences work better than a spec sheet.</p>
             </div>
-            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2.5 px-4 rounded-xl cursor-pointer">
-              Execute Integration
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-ink">Availability</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStatus('Launched')}
+                  className={`text-sm font-semibold py-3.5 rounded-xl border transition-colors cursor-pointer ${
+                    status === 'Launched'
+                      ? 'bg-verified-soft border-verified text-verified'
+                      : 'bg-surface-sunken border-line text-ink-soft hover:border-ink-faint'
+                  }`}
+                >
+                  Launched
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatus('Upcoming')}
+                  className={`text-sm font-semibold py-3.5 rounded-xl border transition-colors cursor-pointer ${
+                    status === 'Upcoming'
+                      ? 'bg-pending-soft border-pending text-pending'
+                      : 'bg-surface-sunken border-line text-ink-soft hover:border-ink-faint'
+                  }`}
+                >
+                  Upcoming
+                </button>
+              </div>
+              <p className="text-xs text-ink-faint">
+                {status === 'Launched' ? 'Open for reviews right away.' : 'Visible to reviewers, but not open for review yet.'}
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-signal hover:bg-signal-hover text-white text-sm font-semibold py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+            >
+              <Sparkle className="w-4 h-4" /> List product
             </button>
           </form>
         </div>
 
-        {/* Catalog List */}
-        <div className="lg:col-span-2 space-y-4">
-          <h3 className="font-bold text-base text-slate-900">Your Deployed Asset Index</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {productList.map((product) => (
-              <div key={product.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between gap-4">
-                <div className="flex gap-3 items-start">
-                  <img src={product.catalogImage} className="w-12 h-12 rounded-lg object-cover border border-slate-100" alt="" />
-                  <div>
-                    <h4 className="font-bold text-sm text-slate-900 line-clamp-1">{product.title}</h4>
-                    <span className={`inline-block text-[9px] font-mono px-2 py-0.2 rounded mt-1 border ${
-                      product.launchStatus === 'Launched' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100'
-                    }`}>
-                      {product.launchStatus}
-                    </span>
-                  </div>
-                </div>
-                <div className="border-t border-slate-100 pt-3 flex items-center justify-between">
-                  <span className="text-[11px] font-medium text-slate-500">{product.analytics?.totalReviews || 0} records logged</span>
-                  <button 
-                    onClick={() => {
-                      onSelectProduct(product);
-                      onNavigate('creator-analytics');
-                    }} 
-                    className="text-xs text-blue-600 font-semibold flex items-center gap-0.5 hover:text-blue-700 cursor-pointer"
-                  >
-                    <BarChart3 className="w-3.5 h-3.5" /> View Analytics →
-                  </button>
-                </div>
+        {/* Catalog — big cards */}
+        <div className="lg:col-span-3 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-display font-semibold text-lg text-ink">Your products</h3>
+            <span className="text-xs font-data text-ink-faint">{productList.length} listed</span>
+          </div>
+
+          {productList.length === 0 && (
+            <div className="bg-surface border border-line rounded-2xl p-12 text-center flex flex-col items-center gap-3">
+              <div className="bg-surface-sunken w-12 h-12 rounded-full flex items-center justify-center">
+                <Package className="w-5 h-5 text-ink-faint" />
               </div>
-            ))}
+              <p className="text-sm text-ink-soft">Nothing listed yet — use the form to add your first product.</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {productList.map((product, i) => {
+              const isLaunched = (product.launchStatus ?? 'Launched') === 'Launched';
+              return (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: Math.min(i, 6) * 0.04 }}
+                  whileHover={{ y: -3 }}
+                  className="bg-surface border border-line rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col"
+                >
+                  <div className="w-full aspect-[16/10] bg-surface-sunken">
+                    <img
+                      src={product.catalogImage}
+                      alt={product.title}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="p-5 flex flex-col gap-3 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <h4 className="font-display font-semibold text-base text-ink leading-snug">{product.title}</h4>
+                      <span
+                        className={`shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+                          isLaunched ? 'bg-verified-soft text-verified' : 'bg-pending-soft text-pending'
+                        }`}
+                      >
+                        {isLaunched ? 'Launched' : 'Upcoming'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-ink-soft leading-relaxed line-clamp-2">{product.description}</p>
+
+                    <div className="mt-auto pt-3 border-t border-line flex items-center justify-between">
+                      <span className="text-xs font-data text-ink-soft">
+                        <span className="text-ink font-medium">{product.analytics?.totalReviews ?? 0}</span> reviews
+                      </span>
+                      <button
+                        onClick={() => {
+                          onSelectProduct(product);
+                          onNavigate('creator-analytics');
+                        }}
+                        className="text-xs font-semibold text-ledger hover:text-ledger-hover flex items-center gap-1 cursor-pointer"
+                      >
+                        <BarChart3 className="w-3.5 h-3.5" /> Analytics
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </div>

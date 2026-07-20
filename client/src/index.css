@@ -1,23 +1,90 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap');
 
+/* ---------------------------------------------------------------
+   Design tokens — "Signal" identity
+   Reviews go in as text, come out as a measured signal. The palette,
+   type system, and pulse-bar motif all reinforce that idea.
+----------------------------------------------------------------*/
+@theme {
+  /* Surfaces */
+  --color-canvas: #F3F4EF;      /* page background — warm, cool-toned paper, not cream */
+  --color-surface: #FFFFFF;     /* card/module background */
+  --color-surface-sunken: #ECEEE8; /* recessed panels, inputs */
+  --color-line: #E1E3DA;        /* borders tuned to canvas warmth */
+
+  /* Ink */
+  --color-ink: #14181A;         /* primary text */
+  --color-ink-soft: #5B6560;    /* secondary text */
+  --color-ink-faint: #8B948E;   /* tertiary / placeholder text */
+
+  /* Brand */
+  --color-ledger: #164F45;      /* primary — deep pine teal, "verified record" */
+  --color-ledger-soft: #E2EBE7; /* tint background for ledger */
+  --color-ledger-hover: #0F3B33;
+
+  --color-signal: #FF6B45;      /* accent — warm coral, used sparingly for CTAs/highlights */
+  --color-signal-soft: #FFE9E1;
+  --color-signal-hover: #E8532E;
+
+  /* Semantic */
+  --color-verified: #1F9D6B;
+  --color-verified-soft: #E3F5EC;
+  --color-flag: #D6483B;
+  --color-flag-soft: #FBEAE8;
+  --color-pending: #C98A1F;
+  --color-pending-soft: #F7EDDB;
+
+  /* Type */
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-data: 'IBM Plex Mono', ui-monospace, monospace;
+}
 
 @layer base {
-  :root {
-    --bg-main: #f8fafc;        /* Soft slate white */
-    --bg-surface: #ffffff;     /* Clean pure white for cards and modules */
-    --border-subtle: #e2e8f0;  /* Crisp light gray divider lines */
-    --text-primary: #0f172a;   /* Deep slate for clear typography */
-    --text-secondary: #475569; /* Balanced charcoal for body text */
-    
-    --brand-primary: #2563eb;   /* Refined corporate royal blue */
-    --brand-success: #16a34a;   /* Clean leaf green for positive signals */
-    --brand-warning: #ea580c;   /* Balanced amber for potential risk items */
-    --brand-danger: #dc2626;    /* Soft crimson for alert items */
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+
+  .font-data {
+    font-family: var(--font-data);
   }
 }
 
-body {
-  background-color: var(--bg-main);
-  color: var(--text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+/* Signature "pulse" glyph — 3 bars that breathe, used as the logo mark
+   and beside sentiment/signal scores throughout the app. */
+@keyframes pulse-bar {
+  0%, 100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1); }
+}
+
+.signal-pulse {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 14px;
+}
+
+.signal-pulse span {
+  display: block;
+  width: 3px;
+  border-radius: 2px;
+  background: currentColor;
+  animation: pulse-bar 1.1s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.signal-pulse span:nth-child(1) { height: 60%; animation-delay: 0ms; }
+.signal-pulse span:nth-child(2) { height: 100%; animation-delay: 150ms; }
+.signal-pulse span:nth-child(3) { height: 45%; animation-delay: 300ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .signal-pulse span { animation: none; }
 }
