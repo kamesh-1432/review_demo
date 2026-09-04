@@ -1,0 +1,267 @@
+diff --git a/client/src/App.tsx b/client/src/App.tsx
+index 170bfb6..f3012a6 100644
+--- a/client/src/App.tsx
++++ b/client/src/App.tsx
+@@ -38,7 +38,12 @@ export default function App() {
+   const fetchProducts = async () => {
+     setLoading(true);
+     try {
++      // Creators should only ever see the products *they* listed, never every
++      // creator's catalog. Reviewers still see the full catalog to review.
++      const scopeParams = currentPage === 'creator-dashboard' ? { mine: 'true' } : {};
++
+       const response = await axios.get(`${BACKEND_URL}/api/products`, {
++        params: scopeParams,
+         headers: authToken ? { Authorization: `Bearer ${authToken}` } : {}
+       });
+ 
+@@ -107,13 +112,20 @@ export default function App() {
+     }
+   };
+ 
+-  const handleLaunchProduct = async (title: string, desc: string, status: 'Launched' | 'Upcoming', catalogImage: string) => {
++  const handleLaunchProduct = async (
++    title: string,
++    desc: string,
++    status: 'Launched' | 'Upcoming',
++    catalogImage: string,
++    price: number,
++    category: string
++  ) => {
+     setLoading(true);
+     setError(null);
+     try {
+       await axios.post(
+-        `${BACKEND_URL}/api/products`, 
+-        { title, description: desc, launchStatus: status, catalogImage },
++        `${BACKEND_URL}/api/products`,
++        { title, description: desc, launchStatus: status, catalogImage, price, category },
+         { headers: { Authorization: `Bearer ${authToken}` } }
+       );
+       setSuccessMessage("Product asset registered successfully.");
+diff --git a/client/src/components/CreatorDashboard.tsx b/client/src/components/CreatorDashboard.tsx
+index b5f154c..32675b0 100644
+--- a/client/src/components/CreatorDashboard.tsx
++++ b/client/src/components/CreatorDashboard.tsx
+@@ -7,11 +7,29 @@ interface CreatorDashboardProps {
+   products: Product[];
+   onNavigate: (page: CurrentPage) => void;
+   onSelectProduct: (product: Product) => void;
+-  onLaunchProduct: (title: string, desc: string, status: 'Launched' | 'Upcoming', catalogImage: string) => void;
++  onLaunchProduct: (
++    title: string,
++    desc: string,
++    status: 'Launched' | 'Upcoming',
++    catalogImage: string,
++    price: number,
++    category: string
++  ) => void;
+ }
+ 
+ const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4MB raw file cap, keeps base64 payload safely under the 8mb server limit
+ 
++const CATEGORY_OPTIONS = [
++  'Electronics',
++  'Home & Kitchen',
++  'Beauty & Personal Care',
++  'Apparel & Accessories',
++  'Sports & Outdoors',
++  'Software & Apps',
++  'Toys & Games',
++  'Other'
++];
++
+ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
+   products,
+   onNavigate,
+@@ -21,8 +39,11 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
+   const [title, setTitle] = useState('');
+   const [desc, setDesc] = useState('');
+   const [status, setStatus] = useState<'Launched' | 'Upcoming'>('Launched');
++  const [price, setPrice] = useState('');
++  const [category, setCategory] = useState('');
+   const [imageData, setImageData] = useState<string | null>(null);
+   const [imageError, setImageError] = useState<string | null>(null);
++  const [formError, setFormError] = useState<string | null>(null);
+   const fileInputRef = useRef<HTMLInputElement>(null);
+ 
+   const productList = Array.isArray(products) ? products : [];
+@@ -48,14 +69,31 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
+ 
+   const handleSubmit = (e: React.FormEvent) => {
+     e.preventDefault();
++    setFormError(null);
++
+     if (!title.trim() || !desc.trim()) return;
++
+     if (!imageData) {
+       setImageError('Add a catalog image before listing the product.');
+       return;
+     }
+-    onLaunchProduct(title, desc, status, imageData);
++
++    if (!category) {
++      setFormError('Choose a category so reviewers can find this product.');
++      return;
++    }
++
++    const numericPrice = Number(price);
++    if (!price || Number.isNaN(numericPrice) || numericPrice <= 0) {
++      setFormError('Enter a real price greater than $0 — this is shown to reviewers and buyers.');
++      return;
++    }
++
++    onLaunchProduct(title, desc, status, imageData, numericPrice, category);
+     setTitle('');
+     setDesc('');
++    setPrice('');
++    setCategory('');
+     setImageData(null);
+     if (fileInputRef.current) fileInputRef.current.value = '';
+   };
+@@ -141,6 +179,40 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
+               <p className="text-xs text-ink-faint">{desc.length} characters — a few clear sentences work better than a spec sheet.</p>
+             </div>
+ 
++            <div className="grid grid-cols-2 gap-4">
++              <div className="space-y-2">
++                <label className="text-sm font-medium text-ink">Price (USD)</label>
++                <div className="relative">
++                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-faint text-[15px]">$</span>
++                  <input
++                    type="number"
++                    required
++                    min="0.01"
++                    step="0.01"
++                    value={price}
++                    onChange={(e) => setPrice(e.target.value)}
++                    placeholder="49.99"
++                    className="w-full bg-surface-sunken border border-line rounded-xl pl-7 pr-4 py-3.5 text-[15px] text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-ledger/30 focus:border-ledger transition-shadow"
++                  />
++                </div>
++              </div>
++
++              <div className="space-y-2">
++                <label className="text-sm font-medium text-ink">Category</label>
++                <select
++                  required
++                  value={category}
++                  onChange={(e) => setCategory(e.target.value)}
++                  className="w-full bg-surface-sunken border border-line rounded-xl px-4 py-3.5 text-[15px] text-ink focus:outline-none focus:ring-2 focus:ring-ledger/30 focus:border-ledger transition-shadow"
++                >
++                  <option value="" disabled>Select a category</option>
++                  {CATEGORY_OPTIONS.map((option) => (
++                    <option key={option} value={option}>{option}</option>
++                  ))}
++                </select>
++              </div>
++            </div>
++
+             <div className="space-y-2">
+               <label className="text-sm font-medium text-ink">Availability</label>
+               <div className="grid grid-cols-2 gap-3">
+@@ -172,6 +244,8 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
+               </p>
+             </div>
+ 
++            {formError && <p className="text-xs text-flag font-medium">{formError}</p>}
++
+             <button
+               type="submit"
+               className="w-full bg-signal hover:bg-signal-hover text-white text-sm font-semibold py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+@@ -227,6 +301,14 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
+                         {isLaunched ? 'Launched' : 'Upcoming'}
+                       </span>
+                     </div>
++                    <div className="flex items-center gap-2 text-xs">
++                      <span className="font-data font-semibold text-ink">
++                        ${typeof product.price === 'number' ? product.price.toFixed(2) : '0.00'}
++                      </span>
++                      {product.category && (
++                        <span className="text-ink-faint">· {product.category}</span>
++                      )}
++                    </div>
+                     <p className="text-sm text-ink-soft leading-relaxed line-clamp-2">{product.description}</p>
+ 
+                     <div className="mt-auto pt-3 border-t border-line flex items-center justify-between">
+diff --git a/server/src/routes/productRoutes.js b/server/src/routes/productRoutes.js
+index 8e01bf2..6682283 100644
+--- a/server/src/routes/productRoutes.js
++++ b/server/src/routes/productRoutes.js
+@@ -5,13 +5,24 @@ import Review from '../models/Review.js';
+ 
+ const router = express.Router();
+ 
+-// @desc    Get all products from MongoDB with corrected live review priority analytics
++// @desc    Get products from MongoDB with corrected live review priority analytics.
++//          Pass ?mine=true (with a business-owner token) to scope results to the
++//          authenticated creator's own products only, instead of the full catalog.
+ // @route   GET /api/products
+ // @access  Public / Protected
+-router.get('/', async (req, res) => {
++router.get('/', protect, async (req, res) => {
+   try {
++    const query = {};
++
++    if (req.query.mine === 'true') {
++      if (!req.user || req.user.role !== 'business') {
++        return res.status(403).json({ message: 'Forbidden: only creators can request their own product list.' });
++      }
++      query.businessId = req.user._id;
++    }
++
+     // Use .lean() to get plain JS objects for faster processing
+-    const products = await Product.find().sort({ createdAt: -1 }).lean();
++    const products = await Product.find(query).sort({ createdAt: -1 }).lean();
+     
+     const mappedProducts = await Promise.all(products.map(async (product) => {
+       const reviews = await Review.find({ productId: product._id })
+@@ -123,6 +134,10 @@ router.get('/', async (req, res) => {
+         title: product.name || product.title,
+         description: product.description,
+         catalogImage: product.poster || product.catalogImage,
++        price: product.price,
++        category: product.category,
++        launchStatus: product.launchStatus,
++        creatorId: product.businessId,
+         analytics: {
+           totalReviews,
+           sentimentScore,
+@@ -149,14 +164,33 @@ router.post('/', protect, authorize('business'), async (req, res) => {
+   try {
+     const { title, description, launchStatus, catalogImage, price, category } = req.body;
+ 
++    // Validate the fields that actually make the listing useful to reviewers/
++    // buyers, instead of silently defaulting them (which previously let every
++    // product get saved with price 0 / category "General").
++    const missing = [];
++    if (!title || !title.trim()) missing.push('title');
++    if (!description || !description.trim()) missing.push('description');
++    if (!category || !category.trim()) missing.push('category');
++
++    const numericPrice = Number(price);
++    if (price === undefined || price === null || price === '' || Number.isNaN(numericPrice) || numericPrice <= 0) {
++      missing.push('price (must be a number greater than 0)');
++    }
++
++    if (missing.length > 0) {
++      return res.status(400).json({
++        message: `Missing or invalid field(s): ${missing.join(', ')}`
++      });
++    }
++
+     // Create the product using values from req.body and the authenticated user
+     const newProduct = await Product.create({
+-      name: title, 
+-      description,
++      name: title.trim(),
++      description: description.trim(),
+       launchStatus: launchStatus || 'Launched',
+       poster: catalogImage || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30', 
+-      price: price || 0, 
+-      category: category || 'General', 
++      price: numericPrice,
++      category: category.trim(),
+       businessId: req.user._id // Correctly associate the product with the authenticated business owner
+     });
+ 

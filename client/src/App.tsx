@@ -38,7 +38,12 @@ export default function App() {
   const fetchProducts = async () => {
     setLoading(true);
     try {
+      // Creators should only ever see the products *they* listed, never every
+      // creator's catalog. Reviewers still see the full catalog to review.
+      const scopeParams = currentPage === 'creator-dashboard' ? { mine: 'true' } : {};
+
       const response = await axios.get(`${BACKEND_URL}/api/products`, {
+        params: scopeParams,
         headers: authToken ? { Authorization: `Bearer ${authToken}` } : {}
       });
 
@@ -107,13 +112,20 @@ export default function App() {
     }
   };
 
-  const handleLaunchProduct = async (title: string, desc: string, status: 'Launched' | 'Upcoming', catalogImage: string) => {
+  const handleLaunchProduct = async (
+    title: string,
+    desc: string,
+    status: 'Launched' | 'Upcoming',
+    catalogImage: string,
+    price: number,
+    category: string
+  ) => {
     setLoading(true);
     setError(null);
     try {
       await axios.post(
-        `${BACKEND_URL}/api/products`, 
-        { title, description: desc, launchStatus: status, catalogImage },
+        `${BACKEND_URL}/api/products`,
+        { title, description: desc, launchStatus: status, catalogImage, price, category },
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
       setSuccessMessage("Product asset registered successfully.");

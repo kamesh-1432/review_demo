@@ -5,13 +5,24 @@ import Review from '../models/Review.js';
 
 const router = express.Router();
 
-// @desc    Get all products from MongoDB with corrected live review priority analytics
+// @desc    Get products from MongoDB with corrected live review priority analytics.
+//          Pass ?mine=true (with a business-owner token) to scope results to the
+//          authenticated creator's own products only, instead of the full catalog.
 // @route   GET /api/products
 // @access  Public / Protected
-router.get('/', async (req, res) => {
+router.get('/', protect, async (req, res) => {
   try {
+    const query = {};
+
+    if (req.query.mine === 'true') {
+      if (!req.user || req.user.role !== 'business') {
+        return res.status(403).json({ message: 'Forbidden: only creators can request their own product list.' });
+      }
+      query.businessId = req.user._id;
+    }
+
     // Use .lean() to get plain JS objects for faster processing
-    const products = await Product.find().sort({ createdAt: -1 }).lean();
+    const products = await Product.find(query).sort({ createdAt: -1 }).lean();
     
     const mappedProducts = await Promise.all(products.map(async (product) => {
       const reviews = await Review.find({ productId: product._id })
@@ -123,6 +134,10 @@ router.get('/', async (req, res) => {
         title: product.name || product.title,
         description: product.description,
         catalogImage: product.poster || product.catalogImage,
+        price: product.price,
+        category: product.category,
+        launchStatus: product.launchStatus,
+        creatorId: product.businessId,
         analytics: {
           totalReviews,
           sentimentScore,
@@ -149,14 +164,33 @@ router.post('/', protect, authorize('business'), async (req, res) => {
   try {
     const { title, description, launchStatus, catalogImage, price, category } = req.body;
 
+    // Validate the fields that actually make the listing useful to reviewers/
+    // buyers, instead of silently defaulting them (which previously let every
+    // product get saved with price 0 / category "General").
+    const missing = [];
+    if (!title || !title.trim()) missing.push('title');
+    if (!description || !description.trim()) missing.push('description');
+    if (!category || !category.trim()) missing.push('category');
+
+    const numericPrice = Number(price);
+    if (price === undefined || price === null || price === '' || Number.isNaN(numericPrice) || numericPrice <= 0) {
+      missing.push('price (must be a number greater than 0)');
+    }
+
+    if (missing.length > 0) {
+      return res.status(400).json({
+        message: `Missing or invalid field(s): ${missing.join(', ')}`
+      });
+    }
+
     // Create the product using values from req.body and the authenticated user
     const newProduct = await Product.create({
-      name: title, 
-      description,
+      name: title.trim(),
+      description: description.trim(),
       launchStatus: launchStatus || 'Launched',
       poster: catalogImage || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30', 
-      price: price || 0, 
-      category: category || 'General', 
+      price: numericPrice,
+      category: category.trim(),
       businessId: req.user._id // Correctly associate the product with the authenticated business owner
     });
 

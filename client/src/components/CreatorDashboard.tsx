@@ -7,10 +7,28 @@ interface CreatorDashboardProps {
   products: Product[];
   onNavigate: (page: CurrentPage) => void;
   onSelectProduct: (product: Product) => void;
-  onLaunchProduct: (title: string, desc: string, status: 'Launched' | 'Upcoming', catalogImage: string) => void;
+  onLaunchProduct: (
+    title: string,
+    desc: string,
+    status: 'Launched' | 'Upcoming',
+    catalogImage: string,
+    price: number,
+    category: string
+  ) => void;
 }
 
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4MB raw file cap, keeps base64 payload safely under the 8mb server limit
+
+const CATEGORY_OPTIONS = [
+  'Electronics',
+  'Home & Kitchen',
+  'Beauty & Personal Care',
+  'Apparel & Accessories',
+  'Sports & Outdoors',
+  'Software & Apps',
+  'Toys & Games',
+  'Other'
+];
 
 export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
   products,
@@ -21,8 +39,11 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
   const [status, setStatus] = useState<'Launched' | 'Upcoming'>('Launched');
+  const [price, setPrice] = useState('');
+  const [category, setCategory] = useState('');
   const [imageData, setImageData] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const productList = Array.isArray(products) ? products : [];
@@ -48,14 +69,31 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
+
     if (!title.trim() || !desc.trim()) return;
+
     if (!imageData) {
       setImageError('Add a catalog image before listing the product.');
       return;
     }
-    onLaunchProduct(title, desc, status, imageData);
+
+    if (!category) {
+      setFormError('Choose a category so reviewers can find this product.');
+      return;
+    }
+
+    const numericPrice = Number(price);
+    if (!price || Number.isNaN(numericPrice) || numericPrice <= 0) {
+      setFormError('Enter a real price greater than $0 — this is shown to reviewers and buyers.');
+      return;
+    }
+
+    onLaunchProduct(title, desc, status, imageData, numericPrice, category);
     setTitle('');
     setDesc('');
+    setPrice('');
+    setCategory('');
     setImageData(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -141,6 +179,40 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
               <p className="text-xs text-ink-faint">{desc.length} characters — a few clear sentences work better than a spec sheet.</p>
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-ink">Price (USD)</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-faint text-[15px]">$</span>
+                  <input
+                    type="number"
+                    required
+                    min="0.01"
+                    step="0.01"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="49.99"
+                    className="w-full bg-surface-sunken border border-line rounded-xl pl-7 pr-4 py-3.5 text-[15px] text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-ledger/30 focus:border-ledger transition-shadow"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-ink">Category</label>
+                <select
+                  required
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full bg-surface-sunken border border-line rounded-xl px-4 py-3.5 text-[15px] text-ink focus:outline-none focus:ring-2 focus:ring-ledger/30 focus:border-ledger transition-shadow"
+                >
+                  <option value="" disabled>Select a category</option>
+                  {CATEGORY_OPTIONS.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <label className="text-sm font-medium text-ink">Availability</label>
               <div className="grid grid-cols-2 gap-3">
@@ -171,6 +243,8 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
                 {status === 'Launched' ? 'Open for reviews right away.' : 'Visible to reviewers, but not open for review yet.'}
               </p>
             </div>
+
+            {formError && <p className="text-xs text-flag font-medium">{formError}</p>}
 
             <button
               type="submit"
@@ -226,6 +300,14 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
                       >
                         {isLaunched ? 'Launched' : 'Upcoming'}
                       </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="font-data font-semibold text-ink">
+                        ${typeof product.price === 'number' ? product.price.toFixed(2) : '0.00'}
+                      </span>
+                      {product.category && (
+                        <span className="text-ink-faint">· {product.category}</span>
+                      )}
                     </div>
                     <p className="text-sm text-ink-soft leading-relaxed line-clamp-2">{product.description}</p>
 
